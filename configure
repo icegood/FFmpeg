@@ -899,8 +899,16 @@ print_enabled(){
 
 append(){
     var=$1
+    local value
+    eval "value=\$$var"
+    local subvars=""
     shift
-    eval "$var=\"\$$var $*\""
+    for rest; do
+        if ! echo " $value " | grep -q " $rest "; then
+            subvars="$subvars $rest"
+        fi
+    done
+    eval "$var=\"\$${var}${subvars}\""
 }
 
 prepend(){
@@ -947,6 +955,7 @@ add_cppflags(){
 }
 
 add_cflags(){
+    log add_cflags "$@"
     append CFLAGS $($cflags_filter "$@")
 }
 
@@ -1270,7 +1279,6 @@ EOF
 }
 
 check_cflags(){
-    log check_cflags "$@"
     test_cflags "$@" && add_cflags "$@"
 }
 
@@ -1559,14 +1567,14 @@ check_pkg_config_cpp(){
     log check_pkg_config_cpp "$@"
     name="$1"
     test_pkg_config_cpp "$@" &&
-        eval add_cflags \$${name}_cflags
+        eval add_cxxflags \$${name}_cflags
 }
 
 check_pkg_config_header_only(){
     log check_pkg_config_cpp "$@"
     name="$1"
     test_pkg_config_cpp "$@" &&
-        eval add_cflags \$${name}_incflags
+        eval add_cflags_headers \$${name}_incflags
 }
 
 test_exec(){
@@ -4526,6 +4534,7 @@ disable_components(){
 map 'disable_components $v' $LIBRARY_LIST
 
 echo "# $0 $FFMPEG_CONFIGURATION" > $logfile
+
 set >> $logfile
 
 test -n "$valgrind" && toolchain="valgrind-memcheck"
@@ -7378,7 +7387,7 @@ elif enabled iconv; then
 fi
 
 enabled debug && add_cflags -g"$debuglevel" && add_asflags -g"$debuglevel"
-
+enabled debug && check_cflags -ggdb"$debuglevel"
 # add some useful compiler flags if supported
 check_cflags -Wdeclaration-after-statement
 check_cflags -Wall
@@ -8034,9 +8043,9 @@ AS=$as
 OBJCC=$objcc
 LD=$ld
 DEPCC=$dep_cc
-DEPCCFLAGS=$DEPCCFLAGS \$(CPPFLAGS)
+DEPCCFLAGS=$DEPCCFLAGS \$(CCFLAGS)
 DEPAS=$as
-DEPASFLAGS=$DEPASFLAGS \$(CPPFLAGS)
+DEPASFLAGS=$DEPASFLAGS \$(ASFLAGS)
 X86ASM=$x86asmexe
 DEPX86ASM=$x86asmexe
 DEPX86ASMFLAGS=\$(X86ASMFLAGS)
