@@ -1744,6 +1744,7 @@ finish:
 static int send_to_enc(Scheduler *sch, SchEnc *enc, AVFrame *frame)
 {
     static int64_t counter;
+    /*
     if (frame != NULL) {
         av_log(sch, AV_LOG_WARNING, "Packet sent: %"PRId64"\n"
             "  Presentation timestamp: %"PRId64"\n"
@@ -1755,6 +1756,7 @@ static int send_to_enc(Scheduler *sch, SchEnc *enc, AVFrame *frame)
     } else {
         av_log(sch, AV_LOG_WARNING, "Packet sent: %"PRId64": NULL\n", counter++);
     }
+    */
     
     if (enc->open_cb && frame && !enc->opened) {
         int ret = enc_open(sch, enc, frame);
