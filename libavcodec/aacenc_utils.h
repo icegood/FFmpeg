@@ -29,6 +29,7 @@
 #define AVCODEC_AACENC_UTILS_H
 
 #include "libavutil/ffmath.h"
+#include "libavutil/log.h"
 #include "aacenc.h"
 #include "aacenctab.h"
 #include "aactab.h"
@@ -79,6 +80,7 @@ static inline int find_min_book(float maxval, int sf)
 
 static inline float find_form_factor(int group_len, int swb_size, float thresh,
                                      const float *scaled, float nzslope) {
+    static int64_t enter_counter, exit_counter;
     const float iswb_size = 1.0f / swb_size;
     const float iswb_sizem1 = 1.0f / (swb_size - 1);
     const float ethresh = thresh;
@@ -86,9 +88,12 @@ static inline float find_form_factor(int group_len, int swb_size, float thresh,
     int w2, i;
     for (w2 = 0; w2 < group_len; w2++) {
         float e = 0.0f, e2 = 0.0f, var = 0.0f, maxval = 0.0f;
-        float nzl = 0;
+        float nzl = 0.0f;
         for (i = 0; i < swb_size; i++) {
-            float s = fabsf(scaled[w2*128+i]);
+            float s;
+            
+            enter_counter++;
+            s = fabsf(scaled[w2*128+i]);
             maxval = FFMAX(maxval, s);
             e += s;
             e2 += s *= s;
@@ -99,11 +104,13 @@ static inline float find_form_factor(int group_len, int swb_size, float thresh,
             if (s >= ethresh) {
                 nzl += 1.0f;
             } else {
-                if (nzslope == 2.f)
+                if (nzslope == 2.f) {
                     nzl += (s / ethresh) * (s / ethresh);
-                else
-                    nzl += ff_fast_powf(s / ethresh, nzslope);
+                } else {
+                    nzl += (float)powf(s / ethresh, nzslope);
+                }
             }
+            exit_counter++;
         }
         if (e2 > thresh) {
             float frm;
