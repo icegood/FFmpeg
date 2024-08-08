@@ -662,16 +662,21 @@ static void psy_3gpp_analyze_channel(FFPsyContext *ctx, int channel,
     const int bandwidth        = ctx->cutoff ? ctx->cutoff : AAC_CUTOFF(ctx->avctx);
     const int cutoff           = bandwidth * 2048 / wi->num_windows / ctx->avctx->sample_rate;
 
+    static psy_3gpp_an_call_count;
+    static psy_3gpp_w;
+    static psy_3gpp_g;
+
     //calculate energies, initial thresholds and related values - 5.4.2 "Threshold Calculation"
     calc_thr_3gpp(wi, num_bands, pch, band_sizes, coefs, cutoff);
 
     //modify thresholds and energies - spread, threshold in quiet, pre-echo control
-    for (w = 0; w < wi->num_windows*16; w += 16) {
+    psy_3gpp_an_call_count++; 
+    for (w = 0, psy_3gpp_w = 0; w < wi->num_windows*16; w += 16, psy_3gpp_w++) {
         AacPsyBand *bands = &pch->band[w];
 
         /* 5.4.2.3 "Spreading" & 5.4.3 "Spread Energy Calculation" */
         spread_en[0] = bands[0].energy;
-        for (g = 1; g < num_bands; g++) {
+        for (g = 1, psy_3gpp_g = 0; g < num_bands; g++, psy_3gpp_g++) {
             bands[g].thr   = FFMAX(bands[g].thr,    bands[g-1].thr * coeffs[g].spread_hi[0]);
             spread_en[w+g] = FFMAX(bands[g].energy, spread_en[w+g-1] * coeffs[g].spread_hi[1]);
         }
